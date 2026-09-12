@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { ArrowRight, Check, Code2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { submitAssessment } from "../../services/assessment";

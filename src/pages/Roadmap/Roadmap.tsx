@@ -190,8 +190,6 @@ const lessonMap: Record<string, string> = {
               !completed &&
               index === firstIncompleteIndex;
 
-            const isUpcoming =
-              !completed && !isNext;
 
             const lessonAvailable =
               Boolean(lessonMap[concept.key]);
