@@ -1,0 +1,58 @@
+// use prisma-next
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  learningProfile LearningProfile?
+  assessments     Assessment[]
+  progress  UserProgress[]
+}
+
+model LearningProfile {
+  id             String @id @default(uuid())
+  userId         String @unique
+
+  sourceLanguage String
+  targetLanguage String
+  skillLevel     String
+
+  syntaxScore          Int @default(0)
+  dataStructuresScore  Int @default(0)
+  algorithmsScore      Int @default(0)
+  oopScore             Int @default(0)
+  overallScore         Int @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model UserProgress {
+  id          String   @id @default(uuid())
+  userId      String
+  conceptKey  String
+  mastery     Int      @default(0)
+  completed   Boolean  @default(false)
+  lastVisited DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, conceptKey])
+  @@index([userId])
+}
+
+model Assessment {
+  id                   String   @id @default(uuid())
+  userId               String
+  syntaxScore          Int
+  dataStructuresScore  Int
+  algorithmsScore      Int
+  oopScore             Int
+  overallScore         Int
+  completedAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
