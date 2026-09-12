@@ -25,6 +25,7 @@ import {
 
 import {
   completeLesson,
+  getAllProgress,
   getProgress,
   markLessonVisited,
   type Progress,
@@ -42,6 +43,11 @@ export default function Lesson() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [progress, setProgress] =
     useState<Progress | null>(null);
+  
+  const [questionProgress, setQuestionProgress] =
+  useState<Progress[]>([]);
+
+  
 
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState("");
@@ -87,6 +93,15 @@ export default function Lesson() {
         console.error(err);
       });
 
+
+    getAllProgress()
+    .then((data) => {
+      setQuestionProgress(data.progress);
+    })
+    .catch((err) => {
+      console.error("Unable to load question progress:", err);
+    });
+
     markLessonVisited(currentLesson.conceptKey).catch(
       (err) => {
         console.error(err);
@@ -105,12 +120,51 @@ export default function Lesson() {
   const practiceQuestions =
     interactiveLesson?.practice ?? [];
 
-  const selectedQuestion: PracticeQuestion | null =
-    practiceQuestions.find(
-      (question) => question.id === selectedQuestionId,
-    ) ??
-    practiceQuestions[0] ??
-    null;
+  const questionProgressMap = useMemo(() => {
+  const map = new Map<string, Progress>();
+
+  for (const item of questionProgress) {
+    map.set(item.conceptKey, item);
+  }
+
+  return map;
+}, [questionProgress]);
+
+const firstIncompleteQuestionIndex = useMemo(() => {
+  return practiceQuestions.findIndex(
+    (question) =>
+      !questionProgressMap.get(
+        `${lesson?.conceptKey}:${question.id}`,
+      )?.completed,
+  );
+}, [practiceQuestions, questionProgressMap, lesson?.conceptKey]);
+
+const solvedQuestionCount = useMemo(() => {
+  return practiceQuestions.filter(
+    (question) =>
+      questionProgressMap.get(
+        `${lesson?.conceptKey}:${question.id}`,
+      )?.completed,
+  ).length;
+}, [practiceQuestions, questionProgressMap, lesson?.conceptKey]);
+
+const practiceMastery =
+  practiceQuestions.length > 0
+    ? Math.round(
+        (solvedQuestionCount / practiceQuestions.length) * 100,
+      )
+    : 0;
+
+const selectedQuestion: PracticeQuestion | null =
+  practiceQuestions.find(
+    (question) => question.id === selectedQuestionId,
+  ) ??
+  practiceQuestions[
+    firstIncompleteQuestionIndex >= 0
+      ? firstIncompleteQuestionIndex
+      : practiceQuestions.length - 1
+  ] ??
+  null;
 
   useEffect(() => {
     if (!selectedQuestion) {
@@ -124,12 +178,16 @@ export default function Lesson() {
     setExecutionResult(null);
     setSubmissionResult(null);
   }, [selectedQuestion]);
-  async function handleComplete() {
-    if (!lesson || completing) {
-      return;
-    }
+      async function handleComplete() {
+        if (
+          !lesson ||
+          completing ||
+          solvedQuestionCount < practiceQuestions.length
+        ) {
+          return;
+        }
 
-    try {
+  try {
       setCompleting(true);
 
       const data = await completeLesson(
@@ -176,51 +234,119 @@ export default function Lesson() {
     }
   }
 
-  function handleQuestionChange(
-    question: PracticeQuestion,
+function handleQuestionChange(
+  question: PracticeQuestion,
+) {
+  const questionIndex =
+    practiceQuestions.findIndex(
+      (item) => item.id === question.id,
+    );
+
+  if (
+    firstIncompleteQuestionIndex !== -1 &&
+    questionIndex > firstIncompleteQuestionIndex
   ) {
-    setSelectedQuestionId(question.id);
-    setCode(question.starterCode);
-    setShowHints(false);
-    setVisibleHints(0);
-    setExecutionResult(null);
-    setSubmissionResult(null);
+    return;
   }
 
-  async function handleSubmit() {
-    if (
-      !selectedQuestion ||
-      submitting ||
-      running ||
-      !code.trim()
-    ) {
+  setSelectedQuestionId(question.id);
+  setCode(question.starterCode);
+  setShowHints(false);
+  setVisibleHints(0);
+  setExecutionResult(null);
+}
+
+async function handleSubmit() {
+  if (
+    !selectedQuestion ||
+    !lesson ||
+    submitting ||
+    running ||
+    !code.trim()
+  ) {
+    return;
+  }
+
+  try {
+    setSubmitting(true);
+    setSubmissionResult(null);
+
+    const result = await submitCode(
+      code,
+      selectedQuestion.id,
+    );
+
+    setSubmissionResult(result);
+
+    // Only progress when the solution is correct.
+    if (!result.correct) {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      setSubmissionResult(null);
+    const progressKey =
+      `${lesson.conceptKey}:${selectedQuestion.id}`;
 
-      const result = await submitCode(
-        code,
-        selectedQuestion.id,
+    // Save this question as completed.
+    const data = await completeLesson(progressKey);
+
+    setQuestionProgress((current) => {
+      const existingIndex = current.findIndex(
+        (item) => item.conceptKey === progressKey,
       );
 
-      setSubmissionResult(result);
-    } catch (err) {
-      setSubmissionResult({
-        correct: false,
-        status: "runtime_error",
-        output:
-          err instanceof Error
-            ? err.message
-            : "Unable to submit solution.",
-        message: "Unable to submit your solution.",
-      });
-    } finally {
-      setSubmitting(false);
+      if (existingIndex === -1) {
+        return [...current, data.progress];
+      }
+
+      const updated = [...current];
+      updated[existingIndex] = data.progress;
+
+      return updated;
+    });
+
+    // Find the current question.
+    const currentIndex = practiceQuestions.findIndex(
+      (question) => question.id === selectedQuestion.id,
+    );
+
+    const nextIndex = currentIndex + 1;
+
+    // If this was the final question, complete the entire lesson.
+    if (nextIndex >= practiceQuestions.length) {
+      const lessonData = await completeLesson(
+        lesson.conceptKey,
+      );
+
+      setProgress(lessonData.progress);
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 800);
+
+      return;
     }
+
+    // Otherwise move automatically to the next question.
+    const nextQuestion =
+      practiceQuestions[nextIndex];
+
+    setTimeout(() => {
+      setSelectedQuestionId(nextQuestion.id);
+    }, 500);
+  } catch (err) {
+    setSubmissionResult({
+      correct: false,
+      status: "runtime_error",
+      output:
+        err instanceof Error
+          ? err.message
+          : "Unable to submit solution.",
+      message: "Unable to submit your solution.",
+    });
+  } finally {
+    setSubmitting(false);
   }
+}
 
   function showNextHint() {
     if (!selectedQuestion) {
@@ -587,56 +713,90 @@ export default function Lesson() {
                 harder ones.
               </p>
             </div>
+            <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      Practice Progress
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {solvedQuestionCount} of {practiceQuestions.length} questions solved
+                    </p>
+                  </div>
 
+                  <span className="text-lg font-semibold text-white">
+                    {practiceMastery}%
+                  </span>
+                </div>
+
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-white transition-all"
+                    style={{ width: `${practiceMastery}%` }}
+                  />
+                </div>
+              </div>
             {/* Question selector */}
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {practiceQuestions.map(
-                (question, index) => {
-                  const isSelected =
-                    question.id ===
-                    selectedQuestion.id;
+      {practiceQuestions.map((question, index) => {
+    const progressKey = `${lesson.conceptKey}:${question.id}`;
 
-                  const difficultyLabel =
-                    question.difficulty === "easy"
-                      ? "Easy"
-                      : question.difficulty ===
-                          "medium"
-                        ? "Medium"
-                        : "Hard";
+    const questionProgress =
+      questionProgressMap.get(progressKey);
 
-                  return (
-                    <button
-                      key={question.id}
-                      type="button"
-                      onClick={() =>
-                        handleQuestionChange(
-                          question,
-                        )
-                      }
-                      className={`rounded-xl border p-4 text-left transition ${
-                        isSelected
-                          ? "border-zinc-500 bg-zinc-800"
-                          : "border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-600">
-                          Question {index + 1}
-                        </span>
+    const isCompleted =
+      questionProgress?.completed ?? false;
 
-                        <span className="text-[11px] uppercase tracking-wider text-zinc-500">
-                          {difficultyLabel}
-                        </span>
-                      </div>
+    const isLocked =
+      firstIncompleteQuestionIndex !== -1 &&
+      index > firstIncompleteQuestionIndex;
 
-                      <p className="mt-2 text-sm font-medium text-zinc-200">
-                        {question.title}
-                      </p>
-                    </button>
-                  );
-                },
+    const isSelected =
+      selectedQuestion?.id === question.id;
+
+    return (
+      <button
+        key={question.id}
+        type="button"
+        disabled={isLocked}
+        onClick={() => {
+          if (!isLocked) {
+            handleQuestionChange(question);
+          }
+        }}
+        className={`rounded-lg border px-4 py-3 text-left transition ${
+          isLocked
+            ? "cursor-not-allowed border-white/5 bg-white/[0.02] opacity-40"
+            : isSelected
+              ? "border-white/20 bg-white/[0.08]"
+              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+        }`}
+      >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-white">
+                Question {index + 1}
+              </span>
+
+              {isCompleted && (
+                <span className="text-xs text-emerald-400">
+                  Solved
+                </span>
+              )}
+
+              {isLocked && (
+                <span className="text-xs text-zinc-500">
+                  Locked
+                </span>
               )}
             </div>
+
+            <p className="mt-1 text-xs text-zinc-500">
+              {question.difficulty}
+            </p>
+          </button>
+             );
+             })}
+           </div>
 
             {/* Selected question */}
             <div className="mt-4 overflow-hidden rounded-2xl border border-zinc-800">
@@ -915,7 +1075,11 @@ export default function Lesson() {
             <button
               type="button"
               onClick={handleComplete}
-              disabled={completing || completed}
+              disabled={
+                          completing ||
+                          completed ||
+                          solvedQuestionCount < practiceQuestions.length
+                        }
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-medium text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {completed ? (

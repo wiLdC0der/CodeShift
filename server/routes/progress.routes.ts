@@ -40,8 +40,29 @@ router.get(
 );
 /**
  * GET /api/progress/:conceptKey
- */
+ */router.get(
+  "/",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const progress = await db.orm.public.UserProgress
+        .where({ userId: req.userId! })
+        .all();
+
+      return res.json({
+        progress,
+      });
+    } catch (error) {
+      console.error("All progress retrieval failed:", error);
+
+      return res.status(500).json({
+        message: "Unable to load progress.",
+      });
+    }
+  },
+);
 router.get(
+  
   "/:conceptKey",
   requireAuth,
   async (req: AuthenticatedRequest, res) => {
