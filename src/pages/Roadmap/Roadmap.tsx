@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 import {
   getRoadmap,
+  getConceptStatus,
   type RoadmapProfile,
 } from "../../services/roadmap";
 
@@ -82,11 +83,6 @@ export default function Roadmap() {
   const completedCount = roadmap.concepts.filter(
     (concept) => completedKeys.has(concept.key),
   ).length;
-
-  const firstIncompleteIndex =
-    roadmap.concepts.findIndex(
-      (concept) => !completedKeys.has(concept.key),
-    );
 
   const overallProgress = roadmap.concepts.length
     ? Math.round(
@@ -181,32 +177,28 @@ const lessonMap: Record<string, string> = {
         </div>
 
         <div className="divide-y divide-zinc-800">
-          {roadmap.concepts.map((concept, index) => {
-            const completed = completedKeys.has(
-              concept.key,
-            );
+          {roadmap.concepts.map((concept) => {
+            const status = getConceptStatus(roadmap, progress, concept.key);
+            const completed = status === "completed";
+            const isNext = status === "next";
+            const isUpcoming = status === "upcoming";
 
-            const isNext =
-              !completed &&
-              index === firstIncompleteIndex;
-
-
-            const lessonAvailable =
-              Boolean(lessonMap[concept.key]);
+            const lessonAvailable = Boolean(lessonMap[concept.key]);
+            
+            // It should be disabled if no lesson available OR if it's upcoming
+            const isDisabled = !lessonAvailable || isUpcoming;
 
             return (
               <button
                 key={concept.key}
                 type="button"
-                disabled={!lessonAvailable}
-                onClick={() =>
-                  openConcept(concept.key)
-                }
+                disabled={isDisabled}
+                onClick={() => openConcept(concept.key)}
                 className={`group flex w-full items-center gap-5 px-6 py-5 text-left transition ${
-                  lessonAvailable
-                    ? "hover:bg-zinc-900/60"
-                    : "cursor-default"
-                }`}
+                  isDisabled
+                    ? "cursor-default"
+                    : "hover:bg-zinc-900/60"
+                } ${isUpcoming ? "opacity-50" : ""}`}
               >
                 {/* Status icon */}
                 <div

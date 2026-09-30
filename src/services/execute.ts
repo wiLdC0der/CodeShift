@@ -56,6 +56,7 @@ export async function executeCode(
 export async function submitCode(
   code: string,
   questionId: string,
+  expectedOutput: string,
 ): Promise<SubmissionResult> {
   const response = await fetch(
     `${API_BASE_URL}/execute/submit`,
@@ -69,6 +70,7 @@ export async function submitCode(
       body: JSON.stringify({
         code,
         questionId,
+        expectedOutput,
       }),
     },
   );

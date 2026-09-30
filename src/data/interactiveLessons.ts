@@ -523,4 +523,303 @@ public class Main {
       },
     ],
   },
+  "java-recursion": {
+    conceptKey: "java-recursion",
+    learningObjectives: [
+      "Understand what recursion is and how it solves problems by breaking them down.",
+      "Identify the base case and the recursive case.",
+      "Understand how the call stack manages recursive method calls.",
+      "Translate Python recursive functions into Java recursive methods."
+    ],
+    examples: [
+      {
+        title: "Basic Recursion (Factorial)",
+        python: `def factorial(n):
+    if n == 0:
+        return 1
+    return n * factorial(n - 1)`,
+        java: `static int factorial(int n) {
+    if (n == 0) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}`,
+        explanation: "The logic is identical. The only differences are the explicit static int method signature, the int parameter type, and Java's braces and semicolons."
+      },
+      {
+        title: "Recursive Countdown",
+        python: `def countdown(n):
+    if n == 0:
+        print("Done!")
+        return
+    print(n)
+    countdown(n - 1)`,
+        java: `static void countdown(int n) {
+    if (n == 0) {
+        System.out.println("Done!");
+        return;
+    }
+    System.out.println(n);
+    countdown(n - 1);
+}`,
+        explanation: "Both functions return nothing. Python implicitly returns, but we can explicitly return. Java uses the void return type to indicate no value is returned."
+      }
+    ],
+    commonMistakes: [
+      {
+        mistake: "Missing base case",
+        explanation: "Without a base case, the method calls itself infinitely until the JVM runs out of memory, resulting in a StackOverflowError."
+      },
+      {
+        mistake: "Recursive call doesn't reduce the problem",
+        explanation: "If factorial(n) calls factorial(n) instead of factorial(n - 1), the problem never gets smaller, and the base case is never reached."
+      },
+      {
+        mistake: "Forgetting to return the recursive result",
+        explanation: "If the method is supposed to return a value, you must return the result of the recursive call. Calling factorial(n - 1) without returning it will cause a compilation error in Java."
+      }
+    ],
+    underTheHood: [
+      {
+        title: "The Call Stack",
+        explanation: "Every time a method is called, a new 'stack frame' is created. It stores the method's arguments and local variables."
+      },
+      {
+        title: "Stack Frames in Recursion",
+        explanation: "When factorial(4) calls factorial(3), the factorial(4) frame remains on the stack waiting for factorial(3) to finish. The stack grows deeper with each recursive call."
+      },
+      {
+        title: "Unwinding",
+        explanation: "When the base case is reached (e.g., factorial(0) returns 1), the stack begins to unwind. factorial(1) receives the 1, multiplies it, and returns, and so on until the original call completes."
+      }
+    ],
+    practice: [
+      {
+        id: "recursion-easy-1",
+        title: "Recursive Countdown",
+        difficulty: "easy",
+        prompt: "Write a recursive method that prints numbers from n down to 1. If n is 0, print 'Go!'.",
+        starterCode: `public class Main {
+    static void countdown(int n) {
+        // Base case
+        
+        // Print current number
+        
+        // Recursive call
+        
+    }
+    
+    public static void main(String[] args) {
+        countdown(3);
+    }
+}`,
+        expectedOutput: "3\n2\n1\nGo!",
+        hints: [
+          "What is the base case? When n is 0.",
+          "If n is 0, print 'Go!' and return.",
+          "Otherwise, print n and call countdown(n - 1)."
+        ],
+        solution: `public class Main {
+    static void countdown(int n) {
+        if (n == 0) {
+            System.out.println("Go!");
+            return;
+        }
+        System.out.println(n);
+        countdown(n - 1);
+    }
+    
+    public static void main(String[] args) {
+        countdown(3);
+    }
+}`
+      },
+      {
+        id: "recursion-easy-2",
+        title: "Factorial",
+        difficulty: "easy",
+        prompt: "Write a recursive method that returns the factorial of n. (e.g., 4! = 4 * 3 * 2 * 1 = 24).",
+        starterCode: `public class Main {
+    static int factorial(int n) {
+        // Base case
+        
+        // Recursive call
+        return 0;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(factorial(4));
+    }
+}`,
+        expectedOutput: "24",
+        hints: [
+          "What is the base case? When n is 0, return 1.",
+          "What is the recursive step? Multiply n by factorial of n - 1.",
+          "Return n * factorial(n - 1)."
+        ],
+        solution: `public class Main {
+    static int factorial(int n) {
+        if (n == 0) {
+            return 1;
+        }
+        return n * factorial(n - 1);
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(factorial(4));
+    }
+}`
+      },
+      {
+        id: "recursion-easy-3",
+        title: "Sum to N",
+        difficulty: "easy",
+        prompt: "Write a recursive method that returns the sum of all integers from 1 to n.",
+        starterCode: `public class Main {
+    static int sumTo(int n) {
+        // Base case
+        
+        // Recursive call
+        return 0;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(sumTo(5));
+    }
+}`,
+        expectedOutput: "15",
+        hints: [
+          "What is the base case? When n is 1, return 1.",
+          "What is the recursive step? Add n to the sum of 1 to n - 1.",
+          "Return n + sumTo(n - 1)."
+        ],
+        solution: `public class Main {
+    static int sumTo(int n) {
+        if (n == 1) {
+            return 1;
+        }
+        return n + sumTo(n - 1);
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(sumTo(5));
+    }
+}`
+      },
+      {
+        id: "recursion-easy-4",
+        title: "Power",
+        difficulty: "easy",
+        prompt: "Write a recursive method that calculates base raised to the power of exponent.",
+        starterCode: `public class Main {
+    static int power(int base, int exponent) {
+        // Base case
+        
+        // Recursive call
+        return 0;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(power(2, 3));
+    }
+}`,
+        expectedOutput: "8",
+        hints: [
+          "What is the base case? Any number to the power of 0 is 1.",
+          "What is the recursive step? Multiply base by the result of base to the power of (exponent - 1).",
+          "Return base * power(base, exponent - 1)."
+        ],
+        solution: `public class Main {
+    static int power(int base, int exponent) {
+        if (exponent == 0) {
+            return 1;
+        }
+        return base * power(base, exponent - 1);
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(power(2, 3));
+    }
+}`
+      },
+      {
+        id: "recursion-medium-1",
+        title: "Palindrome Check",
+        difficulty: "medium",
+        prompt: "Write a recursive method that checks if a string is a palindrome (reads the same forwards and backwards).",
+        starterCode: `public class Main {
+    static boolean isPalindrome(String s) {
+        // Base case
+        
+        // Recursive call
+        return false;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(isPalindrome("racecar"));
+        System.out.println(isPalindrome("hello"));
+    }
+}`,
+        expectedOutput: "true\nfalse",
+        hints: [
+          "What is the base case? A string of length 0 or 1 is always a palindrome.",
+          "If the first and last characters are different, it is not a palindrome.",
+          "Otherwise, check if the substring without the first and last characters is a palindrome. Use s.substring(1, s.length() - 1)."
+        ],
+        solution: `public class Main {
+    static boolean isPalindrome(String s) {
+        if (s.length() <= 1) {
+            return true;
+        }
+        if (s.charAt(0) != s.charAt(s.length() - 1)) {
+            return false;
+        }
+        return isPalindrome(s.substring(1, s.length() - 1));
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(isPalindrome("racecar"));
+        System.out.println(isPalindrome("hello"));
+    }
+}`
+      },
+      {
+        id: "recursion-hard-1",
+        title: "Fibonacci Sequence",
+        difficulty: "hard",
+        prompt: "Write a recursive method that returns the nth Fibonacci number. The sequence starts with 0 and 1. (e.g., fib(0)=0, fib(1)=1, fib(2)=1, fib(3)=2, fib(4)=3, fib(5)=5).",
+        starterCode: `public class Main {
+    static int fibonacci(int n) {
+        // Base cases
+        
+        // Recursive calls
+        return 0;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(fibonacci(5));
+        System.out.println(fibonacci(6));
+    }
+}`,
+        expectedOutput: "5\n8",
+        hints: [
+          "What are the base cases? When n is 0, return 0. When n is 1, return 1.",
+          "What is the recursive step? The nth Fibonacci number is the sum of the (n-1)th and (n-2)th Fibonacci numbers.",
+          "Return fibonacci(n - 1) + fibonacci(n - 2)."
+        ],
+        solution: `public class Main {
+    static int fibonacci(int n) {
+        if (n == 0) return 0;
+        if (n == 1) return 1;
+        return fibonacci(n - 1) + fibonacci(n - 2);
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(fibonacci(5));
+        System.out.println(fibonacci(6));
+    }
+}`
+      }
+    ]
+  }
 };

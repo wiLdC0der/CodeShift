@@ -42,3 +42,38 @@ export async function getRoadmap(): Promise<{
 
   return data;
 }
+
+import type { Progress } from "./progress";
+
+export type ConceptStatus = "completed" | "next" | "upcoming";
+
+export function getConceptStatus(
+  roadmap: RoadmapProfile,
+  progress: Progress[],
+  conceptKey: string
+): ConceptStatus {
+  const completedKeys = new Set(
+    progress.filter((item) => item.completed).map((item) => item.conceptKey)
+  );
+
+  const firstIncompleteIndex = roadmap.concepts.findIndex(
+    (concept) => !completedKeys.has(concept.key)
+  );
+
+  const conceptIndex = roadmap.concepts.findIndex((c) => c.key === conceptKey);
+
+  if (conceptIndex === -1) {
+    return "upcoming";
+  }
+
+  if (completedKeys.has(conceptKey)) {
+    return "completed";
+  }
+
+  // If this is the first incomplete concept, or if ALL previous concepts are completed
+  if (firstIncompleteIndex === -1 || conceptIndex === firstIncompleteIndex) {
+    return "next";
+  }
+
+  return "upcoming";
+}

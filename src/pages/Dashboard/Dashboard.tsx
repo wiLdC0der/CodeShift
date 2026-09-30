@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getPrimaryFocusArea } from "../../lib/personalization";
 
 import {
   getRoadmap,
@@ -154,12 +155,16 @@ const lessonMap: Record<string, string> = {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" />
-
-          <span className="text-xs text-zinc-400">
-            Learning path active
-          </span>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="text-xs text-zinc-400">
+              Personalized path active
+            </span>
+          </div>
+          <div className="text-xs text-zinc-500">
+            Focus area: <span className="font-medium text-zinc-300">{getPrimaryFocusArea(scores)}</span>
+          </div>
         </div>
       </section>
 

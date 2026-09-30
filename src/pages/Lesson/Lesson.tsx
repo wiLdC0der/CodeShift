@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
 import {
   ArrowLeft,
-  ArrowRight,
   Check,
   ChevronDown,
   ChevronUp,
@@ -24,6 +23,11 @@ import {
 } from "../../data/lessons";
 
 import {
+  getRoadmap,
+  getConceptStatus,
+} from "../../services/roadmap";
+
+import {
   completeLesson,
   getAllProgress,
   getProgress,
@@ -35,6 +39,18 @@ import {
   interactiveLessons,
   type PracticeQuestion,
 } from "../../data/interactiveLessons";
+
+import LanguageComparison from "../../components/lesson/LanguageComparison";
+import KeyDifferences from "../../components/lesson/KeyDifferences";
+import LearningObjectives from "../../components/lesson/LearningObjectives";
+import LessonExamples from "../../components/lesson/LessonExamples";
+import UnderTheHood from "../../components/lesson/UnderTheHood";
+import CommonMistakes from "../../components/lesson/CommonMistakes";
+import PracticeProgress from "../../components/lesson/practice/PracticeProgress";
+import QuestionSelector from "../../components/lesson/practice/QuestionSelector";
+import ExecutionOutput from "../../components/lesson/practice/ExecutionOutput";
+import SubmissionResultPanel from "../../components/lesson/practice/SubmissionResultPanel";
+import LessonCompletion from "../../components/lesson/LessonCompletion";
 
 export default function Lesson() {
   const { lessonId } = useParams();
@@ -85,29 +101,37 @@ export default function Lesson() {
 
     setLesson(currentLesson);
 
-    getProgress(currentLesson.conceptKey)
-      .then((data) => {
-        setProgress(data.progress);
-      })
-      .catch((err) => {
+    async function loadData() {
+      try {
+        const [progressData, allProgressData, roadmapData] = await Promise.all([
+          getProgress(currentLesson!.conceptKey),
+          getAllProgress(),
+          getRoadmap(),
+        ]);
+
+        const status = getConceptStatus(
+          roadmapData.roadmap,
+          allProgressData.progress,
+          currentLesson!.conceptKey
+        );
+
+        if (status === "upcoming") {
+          navigate("/roadmap");
+          return;
+        }
+
+        setProgress(progressData.progress);
+        setQuestionProgress(allProgressData.progress);
+
+        await markLessonVisited(currentLesson!.conceptKey);
+      } catch (err) {
         console.error(err);
-      });
+        setError("Unable to load lesson data.");
+      }
+    }
 
-
-    getAllProgress()
-    .then((data) => {
-      setQuestionProgress(data.progress);
-    })
-    .catch((err) => {
-      console.error("Unable to load question progress:", err);
-    });
-
-    markLessonVisited(currentLesson.conceptKey).catch(
-      (err) => {
-        console.error(err);
-      },
-    );
-  }, [lessonId]);
+    loadData();
+  }, [lessonId, navigate]);
 
   const interactiveLesson = useMemo(() => {
     if (!lesson) {
@@ -274,6 +298,7 @@ async function handleSubmit() {
     const result = await submitCode(
       code,
       selectedQuestion.id,
+      selectedQuestion.expectedOutput
     );
 
     setSubmissionResult(result);
@@ -439,260 +464,25 @@ async function handleSubmit() {
           </p>
         </section>
 
-        {/* Python / Java comparison */}
-        <section className="mt-10 grid gap-4 lg:grid-cols-2">
-          <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30">
-            <div className="border-b border-zinc-800 px-5 py-4">
-              <p className="text-xs uppercase tracking-wider text-zinc-600">
-                You already know
-              </p>
+        <LanguageComparison python={lesson.python} java={lesson.java} />
 
-              <h2 className="mt-1 font-semibold text-white">
-                {lesson.python.title}
-              </h2>
-            </div>
+        <KeyDifferences differences={lesson.keyDifferences} />
 
-            <pre className="overflow-x-auto border-b border-zinc-800 bg-zinc-950 p-5 text-sm leading-7 text-zinc-300">
-              <code>{lesson.python.code}</code>
-            </pre>
-
-            <div className="p-5">
-              <p className="text-sm leading-7 text-zinc-500">
-                {lesson.python.explanation}
-              </p>
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30">
-            <div className="border-b border-zinc-800 px-5 py-4">
-              <p className="text-xs uppercase tracking-wider text-zinc-600">
-                What you're learning
-              </p>
-
-              <h2 className="mt-1 font-semibold text-white">
-                {lesson.java.title}
-              </h2>
-            </div>
-
-            <pre className="overflow-x-auto border-b border-zinc-800 bg-zinc-950 p-5 text-sm leading-7 text-zinc-300">
-              <code>{lesson.java.code}</code>
-            </pre>
-
-            <div className="p-5">
-              <p className="text-sm leading-7 text-zinc-500">
-                {lesson.java.explanation}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Key differences */}
-        <section className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
-          <div className="flex items-center gap-2">
-            <Lightbulb size={17} className="text-zinc-400" />
-
-            <h2 className="font-semibold text-white">
-              What changes when you move to Java?
-            </h2>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {lesson.keyDifferences.map(
-              (difference) => (
-                <div
-                  key={difference}
-                  className="flex gap-3 text-sm leading-6 text-zinc-500"
-                >
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-600" />
-
-                  <p>{difference}</p>
-                </div>
-              ),
-            )}
-          </div>
-        </section>
-
-        {/* Learning objectives */}
         {interactiveLesson && (
-          <section className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-600">
-              What you'll master
-            </p>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-              {interactiveLesson.learningObjectives.map(
-                (objective) => (
-                  <div
-                    key={objective}
-                    className="flex gap-3 text-sm leading-6 text-zinc-400"
-                  >
-                    <Check
-                      size={16}
-                      className="mt-1 shrink-0 text-zinc-500"
-                    />
-
-                    <span>{objective}</span>
-                  </div>
-                ),
-              )}
-            </div>
-          </section>
+          <LearningObjectives objectives={interactiveLesson.learningObjectives} />
         )}
 
-        {/* Examples */}
         {interactiveLesson && (
-          <section className="mt-10">
-            <div className="mb-5">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-600">
-                Examples
-              </p>
-
-              <h2 className="mt-2 text-xl font-semibold text-white">
-                Translate the operations you already know.
-              </h2>
-            </div>
-
-            <div className="space-y-4">
-              {interactiveLesson.examples.map(
-                (example) => (
-                  <div
-                    key={example.title}
-                    className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30"
-                  >
-                    <div className="border-b border-zinc-800 px-6 py-4">
-                      <h3 className="font-medium text-white">
-                        {example.title}
-                      </h3>
-
-                      <p className="mt-1 text-sm leading-6 text-zinc-500">
-                        {example.explanation}
-                      </p>
-                    </div>
-
-                    <div className="grid lg:grid-cols-2">
-                      <div className="border-b border-zinc-800 lg:border-b-0 lg:border-r">
-                        <div className="border-b border-zinc-800 px-5 py-3">
-                          <span className="text-xs font-medium uppercase tracking-wider text-zinc-600">
-                            Python
-                          </span>
-                        </div>
-
-                        <pre className="overflow-x-auto bg-zinc-950 p-5 text-sm leading-7 text-zinc-300">
-                          <code>
-                            {example.python}
-                          </code>
-                        </pre>
-                      </div>
-
-                      <div>
-                        <div className="border-b border-zinc-800 px-5 py-3">
-                          <span className="text-xs font-medium uppercase tracking-wider text-zinc-600">
-                            Java
-                          </span>
-                        </div>
-
-                        <pre className="overflow-x-auto bg-zinc-950 p-5 text-sm leading-7 text-zinc-300">
-                          <code>
-                            {example.java}
-                          </code>
-                        </pre>
-                      </div>
-                    </div>
-                  </div>
-                ),
-              )}
-            </div>
-          </section>
+          <LessonExamples examples={interactiveLesson.examples} />
         )}
 
-        {/* Under the hood */}
-        <section className="mt-10">
-          <div className="mb-5">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-600">
-              Under the hood
-            </p>
+        <UnderTheHood 
+          interactiveUnderTheHood={interactiveLesson?.underTheHood} 
+          lessonUnderTheHood={lesson.underTheHood} 
+        />
 
-            <h2 className="mt-2 text-xl font-semibold text-white">
-              Same goal. Different runtime model.
-            </h2>
-          </div>
-
-          {interactiveLesson ? (
-            <div className="space-y-3">
-              {interactiveLesson.underTheHood.map(
-                (item) => (
-                  <div
-                    key={item.title}
-                    className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6"
-                  >
-                    <h3 className="font-medium text-zinc-200">
-                      {item.title}
-                    </h3>
-
-                    <p className="mt-3 text-sm leading-7 text-zinc-500">
-                      {item.explanation}
-                    </p>
-                  </div>
-                ),
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
-                <p className="text-sm font-medium text-zinc-300">
-                  Python
-                </p>
-
-                <p className="mt-3 text-sm leading-7 text-zinc-500">
-                  {lesson.underTheHood.python}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
-                <p className="text-sm font-medium text-zinc-300">
-                  Java
-                </p>
-
-                <p className="mt-3 text-sm leading-7 text-zinc-500">
-                  {lesson.underTheHood.java}
-                </p>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Common mistakes */}
         {interactiveLesson && (
-          <section className="mt-10">
-            <div className="mb-5">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-600">
-                Common mistakes
-              </p>
-
-              <h2 className="mt-2 text-xl font-semibold text-white">
-                Watch for these when switching from Python.
-              </h2>
-            </div>
-
-            <div className="space-y-3">
-              {interactiveLesson.commonMistakes.map(
-                (item) => (
-                  <div
-                    key={item.mistake}
-                    className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-5"
-                  >
-                    <p className="font-medium text-zinc-200">
-                      {item.mistake}
-                    </p>
-
-                    <p className="mt-2 text-sm leading-6 text-zinc-500">
-                      {item.explanation}
-                    </p>
-                  </div>
-                ),
-              )}
-            </div>
-          </section>
+          <CommonMistakes mistakes={interactiveLesson.commonMistakes} />
         )}
 
         {/* Practice */}
@@ -713,90 +503,19 @@ async function handleSubmit() {
                 harder ones.
               </p>
             </div>
-            <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-white">
-                      Practice Progress
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {solvedQuestionCount} of {practiceQuestions.length} questions solved
-                    </p>
-                  </div>
-
-                  <span className="text-lg font-semibold text-white">
-                    {practiceMastery}%
-                  </span>
-                </div>
-
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-white transition-all"
-                    style={{ width: `${practiceMastery}%` }}
-                  />
-                </div>
-              </div>
-            {/* Question selector */}
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      {practiceQuestions.map((question, index) => {
-    const progressKey = `${lesson.conceptKey}:${question.id}`;
-
-    const questionProgress =
-      questionProgressMap.get(progressKey);
-
-    const isCompleted =
-      questionProgress?.completed ?? false;
-
-    const isLocked =
-      firstIncompleteQuestionIndex !== -1 &&
-      index > firstIncompleteQuestionIndex;
-
-    const isSelected =
-      selectedQuestion?.id === question.id;
-
-    return (
-      <button
-        key={question.id}
-        type="button"
-        disabled={isLocked}
-        onClick={() => {
-          if (!isLocked) {
-            handleQuestionChange(question);
-          }
-        }}
-        className={`rounded-lg border px-4 py-3 text-left transition ${
-          isLocked
-            ? "cursor-not-allowed border-white/5 bg-white/[0.02] opacity-40"
-            : isSelected
-              ? "border-white/20 bg-white/[0.08]"
-              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
-        }`}
-      >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-white">
-                Question {index + 1}
-              </span>
-
-              {isCompleted && (
-                <span className="text-xs text-emerald-400">
-                  Solved
-                </span>
-              )}
-
-              {isLocked && (
-                <span className="text-xs text-zinc-500">
-                  Locked
-                </span>
-              )}
-            </div>
-
-            <p className="mt-1 text-xs text-zinc-500">
-              {question.difficulty}
-            </p>
-          </button>
-             );
-             })}
-           </div>
+              <PracticeProgress 
+                solvedCount={solvedQuestionCount} 
+                totalCount={practiceQuestions.length} 
+                mastery={practiceMastery} 
+              />
+            <QuestionSelector
+              practiceQuestions={practiceQuestions}
+              lessonConceptKey={lesson.conceptKey}
+              questionProgressMap={questionProgressMap}
+              firstIncompleteQuestionIndex={firstIncompleteQuestionIndex}
+              selectedQuestionId={selectedQuestion?.id}
+              onQuestionChange={handleQuestionChange}
+            />
 
             {/* Selected question */}
             <div className="mt-4 overflow-hidden rounded-2xl border border-zinc-800">
@@ -979,125 +698,27 @@ async function handleSubmit() {
                 </div>
               </div>
 
-              {/* Output */}
-              {executionResult && (
-                <div className="border-t border-zinc-800 bg-zinc-950">
-                  <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-3">
-                    <span className="text-xs font-medium uppercase tracking-wider text-zinc-600">
-                      Output
-                    </span>
+              <ExecutionOutput executionResult={executionResult} />
 
-                    <span className="text-[11px] text-zinc-700">
-                      {executionResult.status === "success"
-                        ? "Success"
-                        : executionResult.status
-                            .replace("_", " ")
-                            .toUpperCase()}
-                    </span>
-                  </div>
-
-                  <pre className="min-h-[100px] overflow-x-auto whitespace-pre-wrap p-5 font-mono text-sm leading-7 text-zinc-300">
-                    {executionResult.output ||
-                      "(Program produced no output)"}
-                  </pre>
-                </div>
-              )}
-
-              {/* Submission */}
-              <div className="border-t border-zinc-800 bg-zinc-900/30 px-6 py-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    {submissionResult ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-zinc-300">
-                          {submissionResult.correct ? (
-                            <Check size={15} />
-                          ) : (
-                            <span className="h-2 w-2 rounded-full bg-zinc-500" />
-                          )}
-
-                          <span>
-                            {submissionResult.message}
-                          </span>
-                        </div>
-
-                        {!submissionResult.correct &&
-                          submissionResult.status === "success" &&
-                          submissionResult.expectedOutput && (
-                            <p className="text-xs text-zinc-600">
-                              Expected output:{" "}
-                              {submissionResult.expectedOutput}
-                            </p>
-                          )}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-zinc-600">
-                        Submit when you think your solution is correct.
-                      </p>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={
-                      submitting ||
-                      running ||
-                      !code.trim()
-                    }
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-medium text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <Check size={14} />
-
-                    {submitting
-                      ? "Checking..."
-                      : "Submit solution"}
-                  </button>
-                </div>
-              </div>
+              <SubmissionResultPanel
+                submissionResult={submissionResult}
+                submitting={submitting}
+                running={running}
+                code={code}
+                handleSubmit={handleSubmit}
+              />
             </div>
           </section>
         )}
 
         {/* Completion */}
-        <section className="mt-10 border-t border-zinc-800 pt-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-medium text-zinc-300">
-                Finished studying this lesson?
-              </p>
-
-              <p className="mt-1 text-xs text-zinc-600">
-                Complete it to record your progress.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleComplete}
-              disabled={
-                          completing ||
-                          completed ||
-                          solvedQuestionCount < practiceQuestions.length
-                        }
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-medium text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {completed ? (
-                <>
-                  <Check size={14} />
-                  Lesson completed
-                </>
-              ) : completing ? (
-                "Saving..."
-              ) : (
-                <>
-                  Mark lesson complete
-                  <ArrowRight size={14} />
-                </>
-              )}
-            </button>
-          </div>
-        </section>
+        <LessonCompletion
+          handleComplete={handleComplete}
+          completing={completing}
+          completed={completed}
+          solvedQuestionCount={solvedQuestionCount}
+          practiceQuestionsLength={practiceQuestions.length}
+        />
       </main>
     </div>
   );

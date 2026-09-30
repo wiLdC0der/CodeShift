@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import ProtectedRoute from "../../components/layout/ProtectedRoute";
 import AppShell from "../../components/layout/AppShell";
 import Dashboard from "../../pages/Dashboard/Dashboard";
 import Login from "../../pages/Auth/Login";
@@ -43,12 +44,15 @@ export default function AppRouter() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/assessment" element={<Assessment />} />
-        <Route path="/learn/:lessonId" element={<Lesson />} />
-        <Route path="/roadmap" element={<Roadmap />} />
 
-        <Route element={<AppShell />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/assessment" element={<Assessment />} />
+          <Route path="/learn/:lessonId" element={<Lesson />} />
+          <Route path="/roadmap" element={<Roadmap />} />
+
+          <Route element={<AppShell />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

@@ -27,24 +27,6 @@ type ExecutionResult = {
   output: string;
 };
 
-const expectedOutputs: Record<string, string> = {
-  "arraylist-easy-1": "[10, 20, 30]",
-
-  "arraylist-easy-2":
-    "[10, 20, 30, 40]",
-
-  "arraylist-easy-3":
-    "15",
-
-  "arraylist-easy-4":
-    "[10, 50, 30]",
-
-  "arraylist-medium-1":
-    "100",
-
-  "arraylist-hard-1":
-    "[25, 30, 40]",
-};
 
 router.post(
   "/",
@@ -80,7 +62,7 @@ router.post(
   "/submit",
   requireAuth,
   async (req: AuthenticatedRequest, res) => {
-    const { code, questionId } = req.body;
+    const { code, questionId, expectedOutput } = req.body;
 
     if (typeof code !== "string") {
       return res.status(400).json({
@@ -94,6 +76,12 @@ router.post(
       });
     }
 
+    if (typeof expectedOutput !== "string") {
+      return res.status(400).json({
+        message: "Expected output is required.",
+      });
+    }
+
     if (!code.trim()) {
       return res.status(400).json({
         message: "Java code cannot be empty.",
@@ -103,15 +91,6 @@ router.post(
     if (code.length > MAX_CODE_LENGTH) {
       return res.status(400).json({
         message: "Code is too large.",
-      });
-    }
-
-    const expectedOutput =
-      expectedOutputs[questionId];
-
-    if (expectedOutput === undefined) {
-      return res.status(404).json({
-        message: "Practice question not found.",
       });
     }
 

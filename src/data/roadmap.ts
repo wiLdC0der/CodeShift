@@ -4,6 +4,7 @@ export type RoadmapConcept = {
   description: string;
   category: "syntax" | "data-structures" | "algorithms" | "oop";
   difficulty: "foundation" | "core" | "advanced";
+  prerequisites: string[];
 };
 
 export const roadmapConcepts: RoadmapConcept[] = [
@@ -13,6 +14,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Python variables → Java static typing, primitives and references.",
     category: "syntax",
     difficulty: "foundation",
+    prerequisites: [],
   },
   {
     key: "java-control-flow",
@@ -20,6 +22,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "if, switch, for, while and Java-specific syntax.",
     category: "syntax",
     difficulty: "foundation",
+    prerequisites: ["java-types"],
   },
   {
     key: "java-methods",
@@ -27,6 +30,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Parameters, return types, overloading and method syntax.",
     category: "syntax",
     difficulty: "core",
+    prerequisites: ["java-control-flow"],
   },
   {
     key: "java-arrays",
@@ -34,6 +38,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Compare Python lists with Java's fixed-size arrays.",
     category: "data-structures",
     difficulty: "foundation",
+    prerequisites: ["java-control-flow"],
   },
   {
     key: "java-arraylist",
@@ -41,6 +46,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Dynamic collections, generics and resizing.",
     category: "data-structures",
     difficulty: "core",
+    prerequisites: ["java-types", "java-control-flow"],
   },
   {
     key: "java-hashmap",
@@ -48,6 +54,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Key-value structures and Java's typed collections.",
     category: "data-structures",
     difficulty: "core",
+    prerequisites: ["java-arraylist"],
   },
   {
     key: "java-hashset",
@@ -55,6 +62,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Uniqueness, hashing and set operations.",
     category: "data-structures",
     difficulty: "core",
+    prerequisites: ["java-arraylist"],
   },
   {
     key: "java-classes",
@@ -62,6 +70,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Map Python classes to Java classes, constructors and objects.",
     category: "oop",
     difficulty: "core",
+    prerequisites: ["java-methods"],
   },
   {
     key: "java-inheritance",
@@ -69,6 +78,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Understand Java inheritance and how it differs from Python.",
     category: "oop",
     difficulty: "core",
+    prerequisites: ["java-classes"],
   },
   {
     key: "java-interfaces",
@@ -76,6 +86,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Java interfaces and their relationship to Python abstractions.",
     category: "oop",
     difficulty: "core",
+    prerequisites: ["java-classes"],
   },
   {
     key: "java-generics",
@@ -83,6 +94,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Why Java uses types like ArrayList<Integer> and HashMap<String, Integer>.",
     category: "oop",
     difficulty: "advanced",
+    prerequisites: ["java-classes", "java-arraylist"],
   },
   {
     key: "java-sorting",
@@ -90,6 +102,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Translate Python sorting patterns into Java Comparator logic.",
     category: "algorithms",
     difficulty: "core",
+    prerequisites: ["java-arrays", "java-methods"],
   },
   {
     key: "java-binary-search",
@@ -97,6 +110,7 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Implement and reason about binary search in Java.",
     category: "algorithms",
     difficulty: "core",
+    prerequisites: ["java-arrays", "java-sorting"],
   },
   {
     key: "java-recursion",
@@ -104,5 +118,6 @@ export const roadmapConcepts: RoadmapConcept[] = [
     description: "Translate recursive Python solutions into Java.",
     category: "algorithms",
     difficulty: "core",
+    prerequisites: ["java-methods"],
   },
 ];
